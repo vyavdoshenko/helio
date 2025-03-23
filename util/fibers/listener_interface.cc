@@ -117,6 +117,9 @@ void ListenerInterface::RunAcceptLoop() {
       if (ec != errc::connection_aborted) {
         LOG(ERROR) << "Error calling accept " << ec << "/" << ec.message();
       }
+      
+      DCHECK(ec != errc::connection_aborted) << "Error calling accept " << ec << "/" << ec.message();
+
       VLOG(1) << "Breaking RunAcceptLoop()";
       break;
     }
