@@ -21,6 +21,7 @@ option (HELIO_USE_SANITIZER "Use asan and usan sanitizers" OFF)
 option (BUILD_DOCS "Generate documentation " ON)
 option (BUILD_SHARED_LIBS "Build shared libraries" OFF)
 option (USE_MOLD "whether to use mold linker" OFF)
+option (ENABLE_FUZZING "Enable fuzzing build" OFF)
 set    (HELIO_MIMALLOC_OPTS "" CACHE STRING "additional mimalloc compile options")
 set    (HELIO_MIMALLOC_LIBNAME "libmimalloc.a" CACHE STRING "name of mimalloc library")
 
@@ -57,6 +58,10 @@ else()
 
   include(third_party)
   include(internal)
+  
+  if (ENABLE_FUZZING)
+    include(fuzzing)
+  endif()
 endif()
 
 
@@ -67,3 +72,7 @@ add_subdirectory(io)
 add_subdirectory(examples)
 add_subdirectory(strings)
 add_subdirectory(util)
+
+if (ENABLE_FUZZING)
+  add_subdirectory(fuzzing)
+endif()

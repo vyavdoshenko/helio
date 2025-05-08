@@ -12,3 +12,5 @@ third_party
 *.pyc
 _deps
 *.orig
+fuzzing/findings/
+fuzzing_build/

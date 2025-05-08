@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<EnumerationResults ServiceEndpoint="https://example.blob.core.windows.net/">
+  <Blobs>
+    <Blob>
+      <Name>test-blob</Name>
+      <Properties>
+        <Content-Length>1024</Content-Length>
+        <Last-Modified>Wed, 01 Jan 2023 12:00:00 GMT</Last-Modified>
+      </Properties>
+    </Blob>
+    <BlobPrefix>
+      <Name>test-prefix/</Name>
+    </BlobPrefix>
+  </Blobs>
+</EnumerationResults> 
