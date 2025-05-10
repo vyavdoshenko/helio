@@ -1,97 +1,99 @@
-# Fuzzing for Helio Project with AFL++
+# Fuzzing for Helio Project
 
-This directory contains tools for fuzzing Helio components using [AFL++](https://github.com/AFLplusplus/AFLplusplus).
+This directory contains tools for fuzzing various components of the Helio project. Fuzzing is used to detect security vulnerabilities, data processing errors, and other issues by feeding random or mutated input data.
 
-## Dependencies
+## Required Dependencies
 
-Before starting, you need to install AFL++:
-
-```bash
-# On Ubuntu/Debian
-sudo apt-get install build-essential llvm-dev libclang-dev clang
-git clone https://github.com/AFLplusplus/AFLplusplus
-cd AFLplusplus
-make
-sudo make install
-```
+Fuzzing requires [AFL++](https://github.com/AFLplusplus/AFLplusplus). Install it according to the [instructions from the repository](https://github.com/AFLplusplus/AFLplusplus).
 
 ## Available Fuzzers
 
-1. **flit_fuzzer** - fuzzer for testing Parse64Fast and Parse64Safe functions from base/flit.h.
+1. **flit_fuzzer** - fuzzer for Parse64Safe and Parse64Fast functions from base/flit.h
+2. **redis_fuzzer** - fuzzer for Redis protocol analysis
+3. **http_fuzzer** - fuzzer for HTTP protocol analysis
 
-## How to Build and Run
+## Compilation and Running
 
-### Method 1: Using the Script
-
-Simply run:
+To compile the fuzzers, include the ENABLE_FUZZING option during CMake configuration:
 
 ```bash
-./build-and-run.sh
+cmake -DENABLE_FUZZING=ON -B build .
+cd build
+make
 ```
 
-### Method 2: Manual Build and Run
+### Running Fuzzing
+
+To run fuzzing for a specific fuzzer:
 
 ```bash
-# Create a build directory
-mkdir -p build-fuzzing && cd build-fuzzing
-
-# Configure the project
-CC=afl-cc CXX=afl-c++ cmake .. -DENABLE_FUZZING=ON -DCMAKE_BUILD_TYPE=Debug
-
-# Build the project
-make -j$(nproc) flit_fuzzer
-
-# Run the fuzzer
+cd build
 make run_flit_fuzzer
 ```
+
+For Redis or HTTP protocols:
+
+```bash
+make run_redis_fuzzer
+make run_http_fuzzer
+```
+
+## Analyzing Results
+
+After running fuzzing, results will be stored in the following directories:
+- `build/fuzzing/flit_fuzzer_findings/`
+- `build/fuzzing/redis_fuzzer_findings/`
+- `build/fuzzing/http_fuzzer_findings/`
+
+To analyze results manually, check these directories, particularly the `crashes/` and `hangs/` subdirectories.
+
+### Automated Analysis
+
+The following targets are available for analyzing results:
+
+1. **Quick View**:
+   ```bash
+   make analyze_redis   # Analyze Redis fuzzer results
+   make analyze_http    # Analyze HTTP fuzzer results
+   make analyze_results # Analyze results from both fuzzers
+   ```
+
+2. **Detailed Analysis**:
+   ```bash
+   make detailed_analysis
+   ```
+   This command runs the `fuzzing_analyzer` utility, which processes results and provides detailed statistics.
+
+## Input Data Formats
+
+### Redis Protocol
+
+Redis uses the RESP (Redis Serialization Protocol) text protocol with the following formats:
+- Simple strings: `+OK\r\n`
+- Errors: `-Error message\r\n`
+- Integers: `:1000\r\n`
+- Bulk strings: `$5\r\nHello\r\n`
+- Arrays: `*2\r\n$3\r\nGET\r\n$3\r\nkey\r\n`
+
+### HTTP Protocol
+
+HTTP uses a text protocol with the following structure:
+- Request line: `GET /path HTTP/1.1\r\n`
+- Headers: `Host: example.com\r\n`
+- Empty line: `\r\n`
+- Body (optional): `param=value`
 
 ## Adding New Fuzzers
 
 To add a new fuzzer:
 
-1. Create a new .cc file named `your_fuzzer.cc`
-2. Implement a standard main function that reads input from a file
-3. Add the executable to fuzzing/CMakeLists.txt using the add_fuzzer function
-4. Create an initial corpus in the corpus directory
+1. Create a file with implementation (`your_fuzzer.cc`)
+2. Add it to `fuzzing/CMakeLists.txt`:
+   ```cmake
+   add_fuzzer(your_fuzzer your_fuzzer.cc base)
+   ```
+3. Optionally update the results analysis utility and add new targets for analysis
 
-Example:
-```cpp
-// my_fuzzer.cc
-#include <cstdint>
-#include <vector>
+## Extending the Results Analyzer
 
-int TestOneInput(const uint8_t* data, size_t size) {
-  // Fuzzing logic here
-  return 0;
-}
-
-int main(int argc, char** argv) {
-  if (argc < 2) {
-    return 1;
-  }
-  
-  // Open and read input file
-  FILE* file = fopen(argv[1], "rb");
-  if (!file) return 1;
-  
-  fseek(file, 0, SEEK_END);
-  long size = ftell(file);
-  fseek(file, 0, SEEK_SET);
-  
-  std::vector<uint8_t> buffer(size);
-  fread(buffer.data(), 1, size, file);
-  fclose(file);
-  
-  return TestOneInput(buffer.data(), buffer.size());
-}
-```
-
-Then in CMakeLists.txt:
-```cmake
-add_fuzzer(my_fuzzer my_fuzzer.cc base other_lib)
-```
-
-## Analyzing Results
-
-During fuzzing, AFL++ saves all detected crashes in the `findings/crashes/` directory.
-These files can be used to reproduce and fix the bugs. 
+The `fuzzing_analyzer` utility is designed to analyze fuzzing results. To add support for analyzing a new fuzzer, add the corresponding function to `analysis.cc`. 
